@@ -191,7 +191,9 @@ export class AudioEngine {
   async setPlaying(playing: boolean) {
     if (playing) {
       await this.init();
-      await this.ctx!.resume();
+      // Не await: в фоновой вкладке resume() может висеть в pending до жеста —
+      // UI не должен блокироваться, контекст догонит при первой возможности
+      void this.ctx!.resume();
     }
     this.post({ type: "transport", playing });
   }
