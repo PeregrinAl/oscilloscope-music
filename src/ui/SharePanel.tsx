@@ -4,12 +4,16 @@
 import { useRef, useState } from "react";
 import { useStore } from "../state/store";
 import { normalizeProject, projectToUrlHash } from "../engine/project";
+import { renderWav } from "../engine/wav";
+import { NumField } from "./NumField";
 
 export function SharePanel() {
   const project = useStore((s) => s.project);
+  const compiled = useStore((s) => s.compiled);
   const loadProject = useStore((s) => s.loadProject);
   const fileRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState(false);
+  const [wavSeconds, setWavSeconds] = useState(10);
 
   const copyLink = async () => {
     const hash = projectToUrlHash(project);
@@ -44,6 +48,19 @@ export function SharePanel() {
     reader.readAsText(file);
   };
 
+  const downloadWav = () => {
+    try {
+      const blob = renderWav(project, compiled, wavSeconds);
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${project.name || "xy-project"}.wav`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (e: any) {
+      alert(e.message || String(e));
+    }
+  };
+
   return (
     <div className="panel">
       <h2>Проект</h2>
@@ -68,6 +85,22 @@ export function SharePanel() {
             e.target.value = "";
           }}
         />
+      </div>
+      <div
+        className="setting-row"
+        style={{ marginTop: 10, marginBottom: 0 }}
+        title="Офлайн-рендер того же сигнала с начала (T=0): анимации переменных попадут в файл"
+      >
+        <label>WAV, сек</label>
+        <NumField
+          style={{ width: 56 }}
+          value={wavSeconds}
+          accept={(n) => n > 0 && n <= 600}
+          onCommit={setWavSeconds}
+        />
+        <button className="small" disabled={!compiled.x || !compiled.y} onClick={downloadWav}>
+          ⬇ Экспорт WAV
+        </button>
       </div>
     </div>
   );
