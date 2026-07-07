@@ -53,7 +53,12 @@ function tryCompile(src: string): { compiled: CompiledExpr | null; error: string
   }
 }
 
-/** Добавляет переменные, впервые появившиеся в формулах (Desmos-поведение) */
+/**
+ * Синхронизирует список переменных с формулами (Desmos-поведение):
+ * новые имена становятся ползунками (с пометкой auto), а auto-переменные,
+ * исчезнувшие из формул, удаляются — промежуточные p, ph при наборе phi
+ * не засоряют панель. Тронутые пользователем переменные не удаляются.
+ */
 function withAutoVariables(project: Project, compiled: CompiledPair): Project {
   const used = new Set<string>([
     ...(compiled.x?.variables ?? []),
@@ -70,11 +75,14 @@ function withAutoVariables(project: Project, compiled: CompiledPair): Project {
         max: 5,
         step: 0.01,
         animation: { mode: "none", period: 6, loop: "pingpong" },
+        auto: true,
       });
     }
   }
-  if (added.length === 0) return project;
-  return { ...project, variables: [...project.variables, ...added] };
+  const removedAny = project.variables.some((v) => v.auto && !used.has(v.name));
+  if (added.length === 0 && !removedAny) return project;
+  const kept = project.variables.filter((v) => !v.auto || used.has(v.name));
+  return { ...project, variables: [...kept, ...added] };
 }
 
 function pushAll(project: Project, compiled: CompiledPair) {
@@ -122,7 +130,16 @@ export const useStore = create<AppState>((set, get) => ({
 
   setVariable(name, patch) {
     const { project } = get();
-    const variables = project.variables.map((v) => (v.name === name ? { ...v, ...patch } : v));
+    const variables = project.variables.map((v) => {
+      if (v.name !== name) return v;
+      // Тронутая пользователем переменная перестаёт быть auto — не самоудалится
+      const m = { ...v, ...patch, auto: false };
+      const lo = Math.min(m.min, m.max);
+      const hi = Math.max(m.min, m.max);
+      m.value = Math.min(Math.max(m.value, lo), hi);
+      if (!(m.step >= 0) || !isFinite(m.step)) m.step = 0;
+      return m;
+    });
     const next = { ...project, variables };
     set({ project: next });
     audioEngine.setVariables(variables);

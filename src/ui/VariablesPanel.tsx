@@ -5,6 +5,7 @@ import type { Variable } from "../engine/project";
 import { animatedValue } from "../engine/anim";
 import { audioEngine } from "../audio/engine";
 import { useEffect, useState } from "react";
+import { NumField } from "./NumField";
 
 function VariableCard({ v }: { v: Variable }) {
   const setVariable = useStore((s) => s.setVariable);
@@ -27,22 +28,6 @@ function VariableCard({ v }: { v: Variable }) {
 
   const shown = animated ? liveValue : v.value;
 
-  const numInput = (field: "min" | "max" | "step", label: string) => (
-    <>
-      <label>{label}</label>
-      <input
-        type="number"
-        className="mini-input"
-        value={v[field]}
-        step="any"
-        onChange={(e) => {
-          const n = parseFloat(e.target.value);
-          if (isFinite(n)) setVariable(v.name, { [field]: n });
-        }}
-      />
-    </>
-  );
-
   return (
     <div className="var-card">
       <div className="var-head">
@@ -54,17 +39,25 @@ function VariableCard({ v }: { v: Variable }) {
       </div>
       <input
         type="range"
-        min={v.min}
-        max={v.max}
-        step={v.step || "any"}
+        min={Math.min(v.min, v.max)}
+        max={Math.max(v.min, v.max)}
+        step={v.step > 0 ? v.step : "any"}
         value={animated ? shown : v.value}
         disabled={animated}
         onChange={(e) => setVariable(v.name, { value: parseFloat(e.target.value) })}
       />
       <div className="var-limits">
-        {numInput("min", "min")}
-        {numInput("max", "max")}
-        {numInput("step", "шаг")}
+        <label>min</label>
+        <NumField value={v.min} onCommit={(n) => setVariable(v.name, { min: n })} />
+        <label>max</label>
+        <NumField value={v.max} onCommit={(n) => setVariable(v.name, { max: n })} />
+        <label>шаг</label>
+        <NumField
+          value={v.step}
+          accept={(n) => n >= 0}
+          onCommit={(n) => setVariable(v.name, { step: n })}
+          title="0 — плавно, без сетки шага"
+        />
       </div>
       <div className="var-anim">
         <select
@@ -80,18 +73,11 @@ function VariableCard({ v }: { v: Variable }) {
         {animated && (
           <>
             <label style={{ color: "var(--text-dim)", fontSize: 11 }}>период, с</label>
-            <input
-              type="number"
-              className="mini-input"
+            <NumField
               style={{ width: 56 }}
-              min={0.05}
-              step={0.5}
               value={v.animation.period}
-              onChange={(e) => {
-                const n = parseFloat(e.target.value);
-                if (isFinite(n) && n > 0)
-                  setVariable(v.name, { animation: { ...v.animation, period: n } });
-              }}
+              accept={(n) => n > 0}
+              onCommit={(n) => setVariable(v.name, { animation: { ...v.animation, period: n } })}
             />
           </>
         )}

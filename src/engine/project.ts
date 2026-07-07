@@ -19,6 +19,12 @@ export interface Variable {
   max: number;
   step: number;
   animation: VariableAnimation;
+  /**
+   * true — переменная создана автоматически из формулы и ещё не тронута
+   * пользователем; такие удаляются сами, когда исчезают из формул
+   * (иначе при наборе «phi» копятся мусорные p, ph)
+   */
+  auto?: boolean;
 }
 
 export interface ScopeSettings {
