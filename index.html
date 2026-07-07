@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>XY Scope — oscilloscope music</title>
+    <!-- Включает cross-origin isolation (SharedArrayBuffer) на хостингах без
+         COOP/COEP-заголовков, напр. GitHub Pages. На первом визите страница
+         автоматически перезагрузится один раз. -->
+    <script src="coi-serviceworker.min.js"></script>
   </head>
   <body>
     <div id="root"></div>

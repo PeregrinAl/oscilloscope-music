@@ -108,7 +108,9 @@ export class AudioEngine {
   async init(): Promise<void> {
     if (this.ctx) return;
     const ctx = new AudioContext({ latencyHint: "interactive" });
-    await ctx.audioWorklet.addModule("/xy-worklet.js");
+    // BASE_URL вместо абсолютного пути — на GitHub Pages приложение живёт
+    // в подпути /oscilloscope-music/
+    await ctx.audioWorklet.addModule(import.meta.env.BASE_URL + "xy-worklet.js");
     const node = new AudioWorkletNode(ctx, "xy-processor", {
       numberOfInputs: 0,
       numberOfOutputs: 1,
